@@ -5,7 +5,8 @@
                      syntax/parse
                      rackunit
                      racket/function
-                     racket/port)
+                     racket/port
+                     racket/match)
           scribble/eval
           racket/file)
 
@@ -39,11 +40,13 @@ program:
 
 @section{The try macro}
 
-@defform[#:literals (catch finally)
-         (try body-expr ...+ maybe-catch maybe-finally)
+@defform[#:literals (catch catch/match finally)
+         (try body-expr ...+ maybe-catch maybe-catch/match maybe-finally)
          #:grammar
          [(maybe-catch (code:line)
-                       (catch ([(pred-expr exn-id) handler-expr ...+] ...)))
+                       (catch [pred-expr exn-id handler-expr ...+] ...))
+          (maybe-catch (code:line)
+                       (catch/match [match-expr handler-expr ...+] ...))
           (maybe-finally (code:line)
                          (finally finally-expr ...+))]]{
 Tries @racket[body-expr]s in order, returning the value of the last. If an
@@ -54,6 +57,13 @@ whose value becomes the value of the overall form. The optional
 The @racket[catch] clauses use @racket[with-handlers], but in a different
 format: when @racket[pred-expr] returns true for a thrown exception,
 @racket[exn-id] is bound to the exception for the body @racket[handler-expr].
+
+The @racket[catch/match] clauses are @racket[match] forms tested against the
+exception.
+
+When both @racket[catch]-style and @racket[catch/match]-style clauses are
+present, all of the @racket[catch]-style clauses are tried before any of the
+@racket[catch/match] clauses.
 }
 
 @subsection{Examples}
@@ -61,12 +71,17 @@ format: when @racket[pred-expr] returns true for a thrown exception,
 @examples[#:eval try-eval
           (try
             (/ 10 0)
-            (catch ([(exn? e) (exn-message e)])))
+            (catch [exn? e (exn-message e)]))
+
+          (struct my-error [x y])
+          (try
+            (raise (my-error 1 2))
+            (catch/match [(my-error 1 y) y]))
 
           (let ([resource (get-handle)])
             (try
               (use-might-break resource)
-              (catch ([(exn? e) (displayln (exn-message e))]))
+              (catch [exn? e (displayln (exn-message e))])
               (finally
                 (close resource)))
             (is-closed? resource))]
@@ -93,8 +108,8 @@ and thus causing the finally clause to be run more than once.}
           (code:comment "after")
           (try
             (raise-syntax-error #f "a syntax error")
-            (catch ([(exn:fail:syntax? e)
-                     (displayln "got a syntax error")])))
+            (catch [exn:fail:syntax? e
+                    (displayln "got a syntax error")]))
 
           (code:comment "before")
           (let ([resource (get-handle)])
@@ -108,7 +123,7 @@ and thus causing the finally clause to be run more than once.}
           (let ([resource (get-handle)])
             (try
               (use-might-break resource)
-              (catch ([(exn? e) (displayln (exn-message e))]))
+              (catch [exn? e (displayln (exn-message e))])
               (finally
                 (close resource)))
             (is-closed? resource))
@@ -123,9 +138,9 @@ and thus causing the finally clause to be run more than once.}
           (code:comment "after")
           (try
             (car 42)
-            (catch ([(exn:fail:contract:divide-by-zero? exn) 'got-zero-exn]
-                    [(exn:fail:contract? exn) 'got-contract-exn]
-                    [(exn:fail? exn) 'got-other-exn])))
+            (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
+                   [exn:fail:contract? exn 'got-contract-exn]
+                   [exn:fail? exn 'got-other-exn]))
 
           (code:comment "before")
           (with-handlers ([exn:fail:contract:divide-by-zero?
@@ -136,9 +151,9 @@ and thus causing the finally clause to be run more than once.}
           (code:comment "after")
           (try
             (car (/ 42 0))
-            (catch ([(exn:fail:contract:divide-by-zero? exn) 'got-zero-exn]
-                    [(exn:fail:contract? exn) 'got-contract-exn]
-                    [(exn:fail? exn) 'got-other-exn])))
+            (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
+                   [exn:fail:contract? exn 'got-contract-exn]
+                   [exn:fail? exn 'got-other-exn]))
 
           (code:comment "before")
           (with-handlers ([exn:fail:contract:divide-by-zero?
@@ -149,9 +164,9 @@ and thus causing the finally clause to be run more than once.}
           (code:comment "after")
           (try
             (error "boom")
-            (catch ([(exn:fail:contract:divide-by-zero? exn) 'got-zero-exn]
-                    [(exn:fail:contract? exn) 'got-contract-exn]
-                    [(exn:fail? exn) 'got-other-exn])))
+            (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
+                   [exn:fail:contract? exn 'got-contract-exn]
+                   [exn:fail? exn 'got-other-exn]))
 
           ]
 
@@ -171,4 +186,5 @@ the @hyperlink["http://creativecommons.org/licenses/by/4.0/"]{CCA 4.0
 International License}.
 
 Thanks to @itemize[@item{sarna, for suggesting the macro}
-                   @item{Alex Knauth and SamPh, for improving the @racket[dynamic-wind] usage with @racket[call-with-continuation-barrier]}]
+                   @item{Alex Knauth and SamPh, for improving the @racket[dynamic-wind] usage with @racket[call-with-continuation-barrier]}
+                   @item{notjack, for the excellent suggestion to add @racket[match] forms to @racket[catch] clauses}]
