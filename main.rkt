@@ -15,6 +15,10 @@
 (define-syntax finally (only-in-try 'finally))
 
 (begin-for-syntax
+  (define-syntax-class try-body
+    #:literals (catch catch/match finally)
+    (pattern {~and :expr {~not {~or (catch . _) (catch/match . _) (finally . _)}}}))
+
   (define-syntax-class catch-clause
     #:attributes ((handlers 1))
     #:literals (catch)
@@ -51,7 +55,7 @@
     (λ () (dynamic-wind void value-thunk post-thunk))))
 
 (define-syntax-parser try
-  [(_ {~and body:expr {~not _:catch-clause} {~not _:catch-match-clause} {~not _:finally-clause}} ...+
+  [(_ body:try-body ...+
       {~optional c:catch-clause}
       {~optional m:catch-match-clause}
       {~optional f:finally-clause})
