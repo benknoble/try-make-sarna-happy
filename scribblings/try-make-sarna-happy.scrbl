@@ -8,8 +8,9 @@
                      racket/function
                      racket/port
                      racket/match)
-          scribble/eval
-          racket/file)
+          scribble/examples
+          racket/file
+          "shared.rkt")
 
 @title{try-make-sarna-happy}
 @author{D. Ben Knoble}
@@ -17,11 +18,13 @@
 @(define stx-bee @(hyperlink "https://github.com/syntax-objects/Summer2021"
                              "2021 Syntax Parse bee"))
 @(define try-eval (make-base-eval))
-@(interaction-eval #:eval try-eval (require "main.rkt"))
-@(interaction-eval #:eval try-eval (define (get-handle) (box #f)))
-@(interaction-eval #:eval try-eval (define (use-might-break _) (error 'use-might-break "something went wrong")))
-@(interaction-eval #:eval try-eval (define (close b) (box-cas! b #f #t)))
-@(interaction-eval #:eval try-eval (define is-closed? unbox))
+@(examples #:eval try-eval
+           #:hidden
+           (require "main.rkt")
+           (define (get-handle) (box #f))
+           (define (use-might-break _) (error 'use-might-break "something went wrong"))
+           (define (close b) (box-cas! b #f #t))
+           (define is-closed? unbox))
 
 @defmodule[try-make-sarna-happy]
 
@@ -94,82 +97,85 @@ in a forward direction. In this it is similar to the
 @hyperlink["https://docs.racket-lang.org/threading/index.html"]{threading
 library} but for exceptions.
 
-@margin-note{The second Before/After pair does not show the
-@racket[call-with-continuation-barrier] call because it assumes none of the
+The following Before/After pairs do not show the
+@racket[call-with-continuation-barrier] call because they assumes none of the
 shown procedures muck with continuations. It is needed in the general case,
 however, to prevent a captured continuation from re-entering the dynamic-wind
-and thus causing the finally clause to be run more than once.}
+and thus causing the finally clause to be run more than once.
 
-@examples[#:eval try-eval
+@before-after[try-eval
 
-          (code:comment "before")
-          (with-handlers ([exn:fail:syntax?
-                            (λ (e) (displayln "got a syntax error"))])
-            (raise-syntax-error #f "a syntax error"))
-          (code:comment "after")
-          (try
-            (raise-syntax-error #f "a syntax error")
-            (catch [exn:fail:syntax? e
-                    (displayln "got a syntax error")]))
+               [(with-handlers ([exn:fail:syntax?
+                                  (λ (e)
+                                    (displayln "got a syntax error"))])
+                  (raise-syntax-error #f "a syntax error"))]
 
-          (code:comment "before")
-          (let ([resource (get-handle)])
-            (dynamic-wind
-              void
-              (λ () (with-handlers ([exn? (λ (e) (displayln (exn-message e)))])
-                       (use-might-break resource)))
-              (λ () (close resource)))
-            (is-closed? resource))
-          (code:comment "after")
-          (let ([resource (get-handle)])
-            (try
-              (use-might-break resource)
-              (catch [exn? e (displayln (exn-message e))])
-              (finally
-                (close resource)))
-            (is-closed? resource))
+               [(try
+                  (raise-syntax-error #f "a syntax error")
+                  (catch [exn:fail:syntax? e
+                          (displayln "got a syntax error")]))]]
 
-          (code:comment "from Beautiful Racket: Errors and Exceptions")
-          (code:comment "before")
-          (with-handlers ([exn:fail:contract:divide-by-zero?
-                            (λ (exn) 'got-zero-exn)]
-                          [exn:fail:contract? (λ (exn) 'got-contract-exn)]
-                          [exn:fail? (λ (exn) 'got-other-exn)])
-            (car 42))
-          (code:comment "after")
-          (try
-            (car 42)
-            (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
-                   [exn:fail:contract? exn 'got-contract-exn]
-                   [exn:fail? exn 'got-other-exn]))
+@before-after[try-eval
 
-          (code:comment "before")
-          (with-handlers ([exn:fail:contract:divide-by-zero?
-                            (λ (exn) 'got-zero-exn)]
-                          [exn:fail:contract? (λ (exn) 'got-contract-exn)]
-                          [exn:fail? (λ (exn) 'got-other-exn)])
-            (car (/ 42 0)))
-          (code:comment "after")
-          (try
-            (car (/ 42 0))
-            (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
-                   [exn:fail:contract? exn 'got-contract-exn]
-                   [exn:fail? exn 'got-other-exn]))
+              [(let ([resource (get-handle)])
+                 (dynamic-wind
+                   void
+                   (λ () (with-handlers ([exn? (λ (e) (displayln (exn-message e)))])
+                                        (use-might-break resource)))
+                   (λ () (close resource)))
+                 (is-closed? resource))]
 
-          (code:comment "before")
-          (with-handlers ([exn:fail:contract:divide-by-zero?
-                            (λ (exn) 'got-zero-exn)]
-                          [exn:fail:contract? (λ (exn) 'got-contract-exn)]
-                          [exn:fail? (λ (exn) 'got-other-exn)])
-            (error "boom"))
-          (code:comment "after")
-          (try
-            (error "boom")
-            (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
-                   [exn:fail:contract? exn 'got-contract-exn]
-                   [exn:fail? exn 'got-other-exn]))
+              [(let ([resource (get-handle)])
+                 (try
+                   (use-might-break resource)
+                   (catch [exn? e (displayln (exn-message e))])
+                   (finally
+                     (close resource)))
+                 (is-closed? resource))]]
 
-          ]
+The following are from @hyperlink["https://beautifulracket.com/explainer/errors-and-exceptions.html"]{Beautiful Racket: Errors and Exceptions}.
+
+@before-after[try-eval
+
+               [(with-handlers ([exn:fail:contract:divide-by-zero?
+                                  (λ (exn) 'got-zero-exn)]
+                               [exn:fail:contract? (λ (exn) 'got-contract-exn)]
+                               [exn:fail? (λ (exn) 'got-other-exn)])
+                 (car 42))]
+
+              [(try
+                 (car 42)
+                 (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
+                        [exn:fail:contract? exn 'got-contract-exn]
+                        [exn:fail? exn 'got-other-exn]))]]
+
+@before-after[try-eval
+
+               [(with-handlers ([exn:fail:contract:divide-by-zero?
+                                  (λ (exn) 'got-zero-exn)]
+                                [exn:fail:contract? (λ (exn) 'got-contract-exn)]
+                                [exn:fail? (λ (exn) 'got-other-exn)])
+                  (car (/ 42 0)))]
+
+               [(try
+                  (car (/ 42 0))
+                  (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
+                         [exn:fail:contract? exn 'got-contract-exn]
+                         [exn:fail? exn 'got-other-exn]))]]
+
+@before-after[try-eval
+
+               [(with-handlers ([exn:fail:contract:divide-by-zero?
+                                  (λ (exn) 'got-zero-exn)]
+                                [exn:fail:contract? (λ (exn) 'got-contract-exn)]
+                                [exn:fail? (λ (exn) 'got-other-exn)])
+                  (error "boom"))]
+
+               [(try
+                  (error "boom")
+                  (catch [exn:fail:contract:divide-by-zero? exn 'got-zero-exn]
+                         [exn:fail:contract? exn 'got-contract-exn]
+                         [exn:fail? exn 'got-other-exn]))]]
 
 @subsection{Implementation}
 
