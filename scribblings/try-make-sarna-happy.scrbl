@@ -42,6 +42,12 @@ program:
 
 (from the @racket[with-handlers] examples).
 
+There are "competing" versions of this macro, so choose your style:
+@itemize[
+         @item[@hyperlink["https://docs.racket-lang.org/try-catch-finally/index.html"]{Alex Knauth's @tt{try-catch-finally}}]
+         @item[@hyperlink["https://docs.racket-lang.org/try-catch-match/index.html"]{Benedek Szilvasy's @tt{try-catch-match}}]
+]
+
 @section{The try macro}
 
 @defform[#:literals (catch catch/match finally)
