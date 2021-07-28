@@ -3,6 +3,7 @@
 @(require (for-label try-make-sarna-happy
                      racket/base
                      syntax/parse
+                     syntax/parse/define
                      rackunit
                      racket/function
                      racket/port
