@@ -20,7 +20,7 @@
 @(define try-eval (make-base-eval))
 @(examples #:eval try-eval
            #:hidden
-           (require "main.rkt")
+           (require try-make-sarna-happy)
            (define (get-handle) (box #f))
            (define (use-might-break _) (error 'use-might-break "something went wrong"))
            (define (close b) (box-cas! b #f #t))
@@ -207,7 +207,7 @@ The following are from @hyperlink["https://beautifulracket.com/explainer/errors-
 
 The following is provided explicitly for the @|stx-bee|.
 
-@(typeset-code (file->string "main.rkt")
+@(typeset-code (file->string impl-file)
                #:context #'here)
 
 @section{License and Acknowledgements}

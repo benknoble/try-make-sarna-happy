@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide before-after)
+(provide before-after
+         impl-file)
 
 (require (for-syntax racket/base)
          racket/list
@@ -9,7 +10,8 @@
          (only-in scribble/struct make-flow)
          scribble/examples
          scribble/html-properties
-         syntax/parse/define)
+         syntax/parse/define
+         racket/runtime-path)
 
 (define (sty columns width #:valign? [valign? #t])
   ;; https://github.com/racket/racket/blob/2f33f60e51cce9ac1fb4f5f232baf8352c6a9152/pkgs/racket-doc/scribblings/style/shared.rkt#L75
@@ -36,3 +38,5 @@
                                           after ...)))
   (table (sty 2 200)
          (apply map (compose make-flow list) contents)))
+
+(define-runtime-path impl-file "../main.rkt")
