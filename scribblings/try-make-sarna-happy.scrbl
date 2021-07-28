@@ -70,6 +70,32 @@ present, all of the @racket[catch]-style clauses are tried before any of the
 @racket[catch/match] clauses.
 }
 
+@defform[#:literals (catch)
+         (catch [pred-expr exn-id handler-expr ...+])]{
+Used in @racket[try] to specify exception handlers. An exception is tested
+against each @racket[pred-expr]; if the test succeeds, the exception is bound to
+@racket[exn-id] and @racket[handler-expr] runs.
+
+If no @racket[pred-expr]s succeed, testing proceeds to any @racket[catch/match]
+clauses.
+}
+
+@defform[#:literals (catch/match)
+         (catch/match [match-expr handler-expr ...+])]{
+Used in @racket[try] to specify exception handlers. An exception is matched
+(in the sense of @racket[match]) against @racket[match-expr]; if the match
+succeeds @racket[handler-expr] runs.
+
+If no @racket[match-expr]s succeed, the exception is re-@racket[raise]d.
+}
+
+@defform[#:literals (finally)
+         (finally finally-expr ...+)]{
+Used in @racket[try] to specify a body of @racket[finally-expr]s which run when
+the @racket[try]-body exits, be it through a return, continuation jump, or
+exception.
+}
+
 @subsection{Examples}
 
 @examples[#:eval try-eval

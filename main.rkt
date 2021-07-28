@@ -1,26 +1,34 @@
 #lang racket/base
 
-(provide try)
+(provide try catch catch/match finally)
 
 (require (for-syntax racket/base)
          racket/match
          syntax/parse/define)
 
 (begin-for-syntax
+  (define ((only-in-try name) stx)
+    (raise-syntax-error name "not allowed except in try" stx)))
+
+(define-syntax catch (only-in-try 'catch))
+(define-syntax catch/match (only-in-try 'catch/match))
+(define-syntax finally (only-in-try 'finally))
+
+(begin-for-syntax
   (define-syntax-class catch-clause
     #:attributes ((pred 1) (name 1) (body 2))
-    #:datum-literals (catch)
+    #:literals (catch)
     (pattern (catch [pred:expr name:id body:expr ...+] ...)))
 
   (define-syntax-class finally-clause
     #:attributes ((body 1))
-    #:datum-literals (finally)
+    #:literals (finally)
     (pattern (finally body:expr ...+)))
 
   ;; this one's for you, notjack
   (define-syntax-class catch-match-clause
     #:attributes ((clause 1) (body 2))
-    #:datum-literals (catch/match)
+    #:literals (catch/match)
     (pattern (catch/match [clause:expr body:expr ...+] ...))))
 
 ;; Calls value-thunk, then post-thunk, with post-thunk guaranteed to be run
